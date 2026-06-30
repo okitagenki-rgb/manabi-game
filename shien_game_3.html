@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>えもじことば🎒 みんなのまなびゲーム</title>
+<style>
+:root {
+  --kokugo:#E84393; --sansu:#2196F3; --rika:#4CAF50;
+  --shakai:#FF9800; --eigo:#9C27B0;
+  --cur:#E84393;
+  --accent:#FFD93D;
+  --radius:18px;
+  --shadow:0 4px 20px rgba(0,0,0,.12);
+  --font:'Hiragino Maru Gothic ProN','BIZ UDPGothic',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:#FFF9F0;min-height:100dvh;overflow:hidden;user-select:none;-webkit-user-select:none;}
+
+/* ===== 画面管理 ===== */
+.screen{display:none;width:100%;min-height:100dvh;flex-direction:column;align-items:center;}
+.screen.active{display:flex;}
+
+/* ===== タイトル ===== */
+#title-screen{background:linear-gradient(160deg,#FFF9F0,#FFE8CC);justify-content:center;padding:20px 16px;gap:18px;}
+.title-emoji{font-size:68px;display:block;animation:bounce 1.6s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-14px);}}
+.title-main{font-size:clamp(20px,6vw,34px);font-weight:900;color:#333;text-align:center;line-height:1.3;margin-top:6px;}
+.title-sub{font-size:13px;color:#999;text-align:center;}
+.sec-label{font-size:12px;color:#bbb;text-align:center;letter-spacing:.1em;margin-bottom:2px;}
+.subj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:100%;max-width:370px;}
+.subj-btn{border:3px solid transparent;border-radius:14px;padding:12px 4px;background:#fff;cursor:pointer;text-align:center;transition:all .18s;box-shadow:var(--shadow);}
+.subj-btn .si{font-size:26px;display:block;}
+.subj-btn .sn{font-size:11px;font-weight:700;margin-top:3px;}
+.subj-btn[data-s="kokugo"]{--c:var(--kokugo);} .subj-btn[data-s="sansu"]{--c:var(--sansu);}
+.subj-btn[data-s="rika"]{--c:var(--rika);}    .subj-btn[data-s="shakai"]{--c:var(--shakai);}
+.subj-btn[data-s="eigo"]{--c:var(--eigo);}
+.subj-btn .sn{color:var(--c);}
+.subj-btn.sel{border-color:var(--c);background:var(--c);}
+.subj-btn.sel .sn{color:#fff;} .subj-btn.sel .si{filter:brightness(10);}
+.subj-btn:active{transform:scale(.93);}
+.diff-row{display:flex;gap:9px;width:100%;max-width:370px;}
+.diff-btn{flex:1;padding:11px 2px;border:2px solid #ddd;border-radius:50px;background:#fff;font-size:12px;font-weight:700;color:#bbb;cursor:pointer;transition:all .18s;text-align:center;}
+.diff-btn.sel{border-color:var(--accent);background:var(--accent);color:#333;box-shadow:0 2px 10px rgba(255,217,61,.45);}
+.start-btn{width:100%;max-width:370px;padding:17px;border:none;border-radius:50px;background:linear-gradient(135deg,#FF6B6B,#FF8E53);color:#fff;font-size:19px;font-weight:900;cursor:pointer;box-shadow:0 6px 20px rgba(255,107,107,.38);letter-spacing:.1em;transition:transform .13s;}
+.start-btn:active{transform:scale(.96);}
+
+/* ===== カウントダウン ===== */
+#countdown-screen{background:var(--cur);justify-content:center;align-items:center;gap:8px;}
+#cd-num{font-size:clamp(90px,28vw,160px);font-weight:900;color:#fff;line-height:1;}
+#cd-label{font-size:17px;color:rgba(255,255,255,.8);}
+@keyframes pop{0%{transform:scale(.55);opacity:0;}65%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+.pop-anim{animation:pop .35s ease;}
+
+/* ===== ゲーム画面 ===== */
+#game-screen{background:#EFF8FF;justify-content:flex-start;padding:0;position:relative;}
+#game-header{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:var(--cur);box-shadow:0 2px 8px rgba(0,0,0,.14);z-index:10;flex-shrink:0;}
+#subj-badge{font-size:12px;font-weight:700;color:rgba(255,255,255,.92);background:rgba(255,255,255,.2);padding:4px 11px;border-radius:50px;}
+#score-badge{font-size:12px;font-weight:700;color:#fff;}
+#quit-btn{background:rgba(255,255,255,.25);border:none;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;}
+
+/* お題エリア */
+#odai-area{width:100%;display:flex;align-items:center;gap:11px;padding:10px 14px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.07);z-index:5;flex-shrink:0;}
+#odai-emoji{font-size:50px;line-height:1;flex-shrink:0;}
+#odai-info{flex:1;min-width:0;}
+#odai-hint{font-size:10px;color:#bbb;}
+#odai-slots{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;}
+.slot{width:34px;height:34px;border-radius:8px;background:#F3F3F3;border:2px dashed #DDD;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:var(--cur);transition:all .18s;}
+.slot.filled{background:var(--cur);border-color:var(--cur);color:#fff;animation:pop .22s ease;}
+#q-count{font-size:10px;color:#ccc;margin-top:2px;}
+
+/* 落下フィールド */
+#field{width:100%;flex:1;position:relative;overflow:hidden;touch-action:none;}
+
+/* キャッチャー */
+#catcher{position:absolute;bottom:10px;font-size:54px;line-height:1;transform:translateX(-50%);z-index:5;filter:drop-shadow(0 4px 8px rgba(0,0,0,.18));pointer-events:none;}
+
+/* 落下文字 — CSSアニメーション廃止、JS制御 */
+.fc{position:absolute;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:900;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.18);pointer-events:none;transform:translateX(-50%);}
+.fc.dark{color:#333;}
+
+/* キャッチエフェクト */
+.catch-fx{position:absolute;font-size:24px;pointer-events:none;animation:fxUp .65s ease forwards;transform:translateX(-50%);}
+@keyframes fxUp{0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-55px) scale(1.35);}}
+
+/* 答えるボタン */
+#answer-btn{position:absolute;bottom:78px;right:12px;background:var(--cur);color:#fff;border:none;border-radius:50px;padding:10px 15px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:10;display:none;}
+#answer-btn.show{display:block;animation:pop .28s ease;}
+
+/* ===== フィードバック ===== */
+#fb-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:98;}
+#fb-bg.show{display:block;}
+#fb-box{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:22px;padding:28px 36px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.22);z-index:99;animation:pop .28s ease;}
+#fb-box.show{display:block;}
+#fb-icon{font-size:56px;}
+#fb-text{font-size:20px;font-weight:900;margin-top:6px;}
+#fb-ans{font-size:13px;color:#999;margin-top:3px;}
+
+/* ===== 結果（通信簿）===== */
+#result-screen{background:#FFFDF5;padding:22px 14px 30px;gap:14px;overflow-y:auto;}
+.report-card{width:100%;max-width:390px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:slideUp .38s ease;}
+@keyframes slideUp{from{transform:translateY(28px);opacity:0;}to{transform:none;opacity:1;}}
+.rh{background:var(--cur);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+.rh-title{font-size:15px;font-weight:700;}
+.rh-stamp{width:50px;height:50px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 2px 8px rgba(0,0,0,.13);}
+.r-meta{padding:10px 18px;background:#FFF8E1;display:flex;gap:16px;font-size:11px;color:#aaa;flex-wrap:wrap;}
+.r-meta span{font-weight:700;color:#666;}
+.eval-table{padding:14px 18px;}
+.eval-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed #EEE;}
+.eval-row:last-child{border:none;}
+.eval-lbl{font-size:12px;color:#666;flex:1;}
+.stars{display:flex;gap:2px;}
+.star{font-size:16px;}
+.overall{margin:0 18px 18px;padding:14px;border-radius:11px;background:#FFF9F0;border:2px solid var(--accent);text-align:center;}
+.ov-grade{font-size:52px;font-weight:900;color:var(--cur);line-height:1;}
+.ov-lbl{font-size:12px;color:#aaa;margin-top:3px;}
+.ov-cmt{font-size:13px;font-weight:700;color:#555;margin-top:7px;line-height:1.5;}
+.res-btns{display:flex;flex-direction:column;gap:9px;width:100%;max-width:390px;}
+.btn-p{width:100%;padding:15px;border:none;border-radius:50px;background:var(--cur);color:#fff;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,.13);transition:transform .13s;}
+.btn-p:active{transform:scale(.96);}
+.btn-s{width:100%;padding:13px;border:2px solid #DDD;border-radius:50px;background:#fff;color:#888;font-size:14px;font-weight:700;cursor:pointer;transition:transform .13s;}
+.btn-s:active{transform:scale(.96);}
+
+/* PC幅制限 */
+@media(min-width:500px){
+  body{background:#D8EAF8;}
+  #game-screen,#title-screen,#result-screen,#countdown-screen{max-width:480px;margin:0 auto;}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+</style>
+</head>
+<body>
+
+<!-- タイトル -->
+<div id="title-screen" class="screen active">
+  <div style="text-align:center">
+    <span class="title-emoji">🎒</span>
+    <div class="title-main">えもじことばゲーム</div>
+    <div class="title-sub">絵をみて　もじをひろおう！</div>
+  </div>
+  <div class="sec-label">きょうかを えらんでね</div>
+  <div class="subj-grid">
+    <button class="subj-btn sel" data-s="kokugo"><span class="si">📖</span><span class="sn">こくご</span></button>
+    <button class="subj-btn" data-s="sansu"><span class="si">🔢</span><span class="sn">さんすう</span></button>
+    <button class="subj-btn" data-s="rika"><span class="si">🔬</span><span class="sn">りか</span></button>
+    <button class="subj-btn" data-s="shakai"><span class="si">🏛️</span><span class="sn">しゃかい</span></button>
+    <button class="subj-btn" data-s="eigo"><span class="si">🌍</span><span class="sn">えいご</span></button>
+  </div>
+  <div class="sec-label">むずかしさ</div>
+  <div class="diff-row">
+    <button class="diff-btn sel" data-d="easy">やさしい</button>
+    <button class="diff-btn" data-d="normal">ふつう</button>
+    <button class="diff-btn" data-d="hard">むずかしい</button>
+  </div>
+  <button class="start-btn" id="start-btn">🚀 はじめる！</button>
+</div>
+
+<!-- カウントダウン -->
+<div id="countdown-screen" class="screen">
+  <div id="cd-emoji" style="font-size:76px">📖</div>
+  <div id="cd-num" class="pop-anim">5</div>
+  <div id="cd-label">じゅんびして！</div>
+</div>
+
+<!-- ゲーム -->
+<div id="game-screen" class="screen">
+  <div id="game-header">
+    <div id="subj-badge">📖 こくご</div>
+    <div id="score-badge">⭕ 0 / 10</div>
+    <button id="quit-btn">✕</button>
+  </div>
+  <div id="odai-area">
+    <div id="odai-emoji">🍌</div>
+    <div id="odai-info">
+      <div id="odai-hint">これは なんでしょう？</div>
+      <div id="odai-slots"></div>
+      <div id="q-count">もんだい 1 / 10</div>
+    </div>
+  </div>
+  <div id="field">
+    <div id="catcher">🧺</div>
+  </div>
+  <button id="answer-btn" onclick="checkAnswer()">✅ こたえる！</button>
+</div>
+
+<!-- フィードバック -->
+<div id="fb-bg"></div>
+<div id="fb-box">
+  <div id="fb-icon">⭕</div>
+  <div id="fb-text">せいかい！</div>
+  <div id="fb-ans"></div>
+</div>
+
+<!-- 結果（通信簿） -->
+<div id="result-screen" class="screen">
+  <div class="report-card">
+    <div class="rh">
+      <div class="rh-title" id="r-title">📖 こくご つうしんぼ</div>
+      <div class="rh-stamp" id="r-stamp">🌸</div>
+    </div>
+    <div class="r-meta">
+      <div>きょうか：<span id="r-subj">こくご</span></div>
+      <div>むずかしさ：<span id="r-diff">やさしい</span></div>
+      <div>もんだい：<span>10もん</span></div>
+    </div>
+    <div class="eval-table">
+      <div class="eval-row"><div class="eval-lbl">🎯 せいかいりつ</div><div class="stars" id="s-acc"></div></div>
+      <div class="eval-row"><div class="eval-lbl">⚡ スピード</div><div class="stars" id="s-spd"></div></div>
+      <div class="eval-row"><div class="eval-lbl">💪 がんばり</div><div class="stars" id="s-eff"></div></div>
+      <div class="eval-row"><div class="eval-lbl">🧠 ちしき</div><div class="stars" id="s-kno"></div></div>
+    </div>
+    <div class="overall">
+      <div class="ov-grade" id="r-grade">◎</div>
+      <div class="ov-lbl">そうごうひょうか</div>
+      <div class="ov-cmt" id="r-cmt">よくできました！🌟</div>
+    </div>
+  </div>
+  <div class="res-btns">
+    <button class="btn-p" id="retry-btn">🔄 もういちど</button>
+    <button class="btn-s" id="home-btn">🏠 きょうかをかえる</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// データ
+// ============================================================
+const QDB = {
+  kokugo:[
+    {emoji:'🍌',hint:'きいろくて ながい くだもの',answer:'ばなな',label:'バナナ'},
+    {emoji:'🐘',hint:'はなが とても ながい どうぶつ',answer:'ぞう',label:'ゾウ'},
+    {emoji:'🌸',hint:'はるに さく ピンクの はな',answer:'さくら',label:'サクラ'},
+    {emoji:'🍎',hint:'あかくて まるい くだもの',answer:'りんご',label:'リンゴ'},
+    {emoji:'🐈',hint:'にゃーと なく どうぶつ',answer:'ねこ',label:'ネコ'},
+    {emoji:'🐕',hint:'ワンと なく どうぶつ',answer:'いぬ',label:'イヌ'},
+    {emoji:'🚃',hint:'まちを はしる のりもの',answer:'でんしゃ',label:'デンシャ'},
+    {emoji:'🌈',hint:'あめあがりに でる いろとりどりの あれ',answer:'にじ',label:'ニジ'},
+    {emoji:'⛰️',hint:'たかくて おおきい やまのこと',answer:'やま',label:'ヤマ'},
+    {emoji:'🏠',hint:'みんなが すんでいる ばしょ',answer:'いえ',label:'イエ'},
+    {emoji:'🐟',hint:'みずの なかを およぐ いきもの',answer:'さかな',label:'サカナ'},
+    {emoji:'🌻',hint:'おおきくて きいろい はな',answer:'ひまわり',label:'ヒマワリ'},
+  ],
+  sansu:[
+    {emoji:'🔵🔵🔵',hint:'まるが いくつ ある？',answer:'さん',label:'３（さん）'},
+    {emoji:'⭐⭐⭐⭐⭐',hint:'ほしが いくつ ある？',answer:'ご',label:'５（ご）'},
+    {emoji:'🍎🍎',hint:'りんごが いくつ ある？',answer:'に',label:'２（に）'},
+    {emoji:'🟦🟦🟦🟦',hint:'しかくが いくつ？',answer:'よん',label:'４（よん）'},
+    {emoji:'🌟🌟🌟🌟🌟🌟',hint:'ほしが いくつ？',answer:'ろく',label:'６（ろく）'},
+    {emoji:'🔴🔴🔴🔴🔴🔴🔴',hint:'まるが いくつ？',answer:'なな',label:'７（なな）'},
+    {emoji:'🎈🎈🎈🎈🎈🎈🎈🎈',hint:'ふうせんが いくつ？',answer:'はち',label:'８（はち）'},
+    {emoji:'🍀🍀🍀🍀🍀🍀🍀🍀🍀',hint:'はっぱが いくつ？',answer:'きゅう',label:'９（きゅう）'},
+    {emoji:'🌸×10',hint:'はなが じゅっこ',answer:'じゅう',label:'１０（じゅう）'},
+    {emoji:'🔵',hint:'まるが ひとつ',answer:'いち',label:'１（いち）'},
+  ],
+  rika:[
+    {emoji:'☀️',hint:'そらに かがやく あかるい ほし',answer:'たいよう',label:'タイヨウ'},
+    {emoji:'🌙',hint:'よるの そらに でる まるいの',answer:'つき',label:'ツキ'},
+    {emoji:'💧',hint:'あめのとき ふってくる もの',answer:'みず',label:'ミズ'},
+    {emoji:'🌱',hint:'たねから めが でた ちいさな もの',answer:'め',label:'メ（芽）'},
+    {emoji:'🦋',hint:'はなに とまる いきもの',answer:'ちょうちょ',label:'チョウチョ'},
+    {emoji:'🐛',hint:'ちょうちょに なる まえの もの',answer:'いもむし',label:'イモムシ'},
+    {emoji:'❄️',hint:'ふゆに そらから ふってくる しろい もの',answer:'ゆき',label:'ユキ'},
+    {emoji:'🌈',hint:'あめと たいようが つくる いろ',answer:'にじ',label:'ニジ'},
+    {emoji:'🌍',hint:'わたしたちが すんでいる ほし',answer:'ちきゅう',label:'チキュウ'},
+    {emoji:'🌊',hint:'うみの たかい なみ',answer:'なみ',label:'ナミ'},
+  ],
+  shakai:[
+    {emoji:'🚒',hint:'かじを けす くるま',answer:'しょうぼうしゃ',label:'ショウボウシャ'},
+    {emoji:'🏥',hint:'びょうきの ひとが いく ばしょ',answer:'びょういん',label:'ビョウイン'},
+    {emoji:'🚌',hint:'おおぜいが のれる のりもの',answer:'ばす',label:'バス'},
+    {emoji:'👮',hint:'まちを まもる おしごとの ひと',answer:'けいさつ',label:'ケイサツ'},
+    {emoji:'🏫',hint:'べんきょう する ばしょ',answer:'がっこう',label:'ガッコウ'},
+    {emoji:'🌾',hint:'こめを そだてる ばしょ',answer:'たんぼ',label:'タンボ'},
+    {emoji:'🚢',hint:'うみを わたる おおきな のりもの',answer:'ふね',label:'フネ'},
+    {emoji:'🏪',hint:'ものを うっている おみせ',answer:'みせ',label:'ミセ'},
+    {emoji:'✉️',hint:'てがみを おくる もの',answer:'てがみ',label:'テガミ'},
+    {emoji:'🚑',hint:'けが人を はこぶ くるま',answer:'きゅうきゅうしゃ',label:'キュウキュウシャ'},
+  ],
+  eigo:[
+    {emoji:'🍎',hint:'えいごで りんご は？',answer:'あっぷる',label:'Apple'},
+    {emoji:'🐱',hint:'えいごで ねこ は？',answer:'きゃっと',label:'Cat'},
+    {emoji:'🐶',hint:'えいごで いぬ は？',answer:'どっぐ',label:'Dog'},
+    {emoji:'📕',hint:'えいごで ほん は？',answer:'ぶっく',label:'Book'},
+    {emoji:'🌸',hint:'えいごで はな は？',answer:'ふらわー',label:'Flower'},
+    {emoji:'⭐',hint:'えいごで ほし は？',answer:'すたー',label:'Star'},
+    {emoji:'🌙',hint:'えいごで つき は？',answer:'むーん',label:'Moon'},
+    {emoji:'☀️',hint:'えいごで たいよう は？',answer:'さん',label:'Sun'},
+    {emoji:'🎒',hint:'えいごで かばん は？',answer:'ばっぐ',label:'Bag'},
+    {emoji:'🌊',hint:'えいごで うみ は？',answer:'しー',label:'Sea'},
+  ],
+};
+
+const SINFO = {
+  kokugo:{name:'こくご',icon:'📖',cat:'🧺',color:'#E84393'},
+  sansu: {name:'さんすう',icon:'🔢',cat:'🎪',color:'#2196F3'},
+  rika:  {name:'りか',icon:'🔬',cat:'🌿',color:'#4CAF50'},
+  shakai:{name:'しゃかい',icon:'🏛️',cat:'🏠',color:'#FF9800'},
+  eigo:  {name:'えいご',icon:'🌍',cat:'🎓',color:'#9C27B0'},
+};
+
+// やさしい=8秒、ふつう=5秒、むずかしい=3.5秒 で画面を通過
+const DINFO = {
+  easy:  {name:'やさしい', pxPerSec:55,  interval:1400},
+  normal:{name:'ふつう',   pxPerSec:85,  interval:1100},
+  hard:  {name:'むずかしい',pxPerSec:130, interval:850},
+};
+
+const CHAR_COLORS=[
+  '#FF6B6B','#4ECDC4','#45B7D1','#7C83FD',
+  '#FF9F43','#A29BFE','#00B894','#E17055',
+];
+const CHAR_DARK=['#FFD93D','#FFEAA7'];
+
+const HIRA='あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
+
+// ============================================================
+// ゲーム状態
+// ============================================================
+const G = {
+  subj:'kokugo', diff:'easy',
+  questions:[], qIdx:0, score:0,
+  target:[], collected:[],
+  spawnTimer:null,
+  fallers:[],       // {el, x, y, char}
+  catcherX:50,      // % of field width
+  fieldW:0, fieldH:0,
+  catcherW:54, catcherH:54,
+  catcherEl:null, fieldEl:null,
+  answered:false,
+  startTime:0, totalTime:0,
+  rafId:null,
+  lastTs:0,
+};
+
+// ============================================================
+// テーマ切替
+// ============================================================
+function setTheme(subj){
+  const col = SINFO[subj].color;
+  document.documentElement.style.setProperty('--cur', col);
+}
+
+// ============================================================
+// UI ヘルパー
+// ============================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ============================================================
+// タイトル操作
+// ============================================================
+document.querySelectorAll('.subj-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.subj-btn').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    G.subj = b.dataset.s;
+    setTheme(G.subj);
+  });
+});
+document.querySelectorAll('.diff-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    G.diff = b.dataset.d;
+  });
+});
+document.getElementById('start-btn').addEventListener('click', startCountdown);
+document.getElementById('quit-btn').addEventListener('click',()=>{ stopGame(); showScreen('title-screen'); });
+document.getElementById('retry-btn').addEventListener('click',()=>{ showScreen('title-screen'); setTimeout(startCountdown,200); });
+document.getElementById('home-btn').addEventListener('click',()=> showScreen('title-screen'));
+
+// ============================================================
+// カウントダウン
+// ============================================================
+function startCountdown(){
+  setTheme(G.subj);
+  const info = SINFO[G.subj];
+  document.getElementById('cd-emoji').textContent = info.icon;
+  document.getElementById('countdown-screen').style.background = info.color;
+  showScreen('countdown-screen');
+  let n=5;
+  const numEl=document.getElementById('cd-num');
+  const lblEl=document.getElementById('cd-label');
+  numEl.textContent=n;
+  const tick=()=>{
+    n--;
+    if(n<=0){ startGame(); return; }
+    numEl.textContent=n;
+    // アニメーションリセット
+    numEl.classList.remove('pop-anim');
+    void numEl.offsetWidth;
+    numEl.classList.add('pop-anim');
+    if(n<=2) lblEl.textContent='もうすぐ！';
+    setTimeout(tick,1000);
+  };
+  setTimeout(tick,1000);
+}
+
+// ============================================================
+// ゲーム開始
+// ============================================================
+function startGame(){
+  const pool=[...QDB[G.subj]];
+  shuffle(pool);
+  G.questions = pool.slice(0,10);
+  G.qIdx=0; G.score=0;
+  G.startTime=Date.now(); G.totalTime=0;
+
+  const info=SINFO[G.subj];
+  document.getElementById('subj-badge').textContent=info.icon+' '+info.name;
+  document.getElementById('catcher').textContent=info.cat;
+
+  showScreen('game-screen');
+  G.catcherEl=document.getElementById('catcher');
+  G.fieldEl  =document.getElementById('field');
+
+  initInput();
+  resizeField();
+  moveCatcher(50);
+  loadQ();
+
+  // ゲームループ開始
+  G.lastTs=performance.now();
+  G.rafId=requestAnimationFrame(loop);
+}
+
+function resizeField(){
+  const r=G.fieldEl.getBoundingClientRect();
+  G.fieldW=r.width;
+  G.fieldH=r.height;
+}
+
+// ============================================================
+// 問題ロード
+// ============================================================
+function loadQ(){
+  G.answered=false;
+  stopFalling();
+  G.fallers.forEach(f=>f.el.remove());
+  G.fallers=[];
+
+  const q=G.questions[G.qIdx];
+  G.target    = q.answer.split('');
+  G.collected = [];
+
+  document.getElementById('odai-emoji').textContent=q.emoji;
+  document.getElementById('odai-hint').textContent =q.hint;
+  document.getElementById('q-count').textContent   =`もんだい ${G.qIdx+1} / ${G.questions.length}`;
+  document.getElementById('score-badge').textContent=`⭕ ${G.score} / ${G.questions.length}`;
+  document.getElementById('answer-btn').classList.remove('show');
+
+  renderSlots();
+  startFalling();
+}
+
+function renderSlots(){
+  const el=document.getElementById('odai-slots');
+  el.innerHTML='';
+  G.target.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='slot'+(G.collected[i]?' filled':'');
+    d.textContent=G.collected[i]||'';
+    el.appendChild(d);
+  });
+  const full = G.collected.filter(Boolean).length === G.target.length;
+  document.getElementById('answer-btn').classList.toggle('show', full && !G.answered);
+}
+
+// ============================================================
+// 落下生成（JS位置管理）
+// ============================================================
+function startFalling(){
+  spawnChar();
+  const iv=DINFO[G.diff].interval;
+  G.spawnTimer=setInterval(spawnChar, iv);
+}
+function stopFalling(){
+  if(G.spawnTimer){ clearInterval(G.spawnTimer); G.spawnTimer=null; }
+}
+
+function spawnChar(){
+  if(G.answered) return;
+  resizeField();
+  const dinfo=DINFO[G.diff];
+
+  // 正解文字かデコイか
+  const need=G.target.filter((c,i)=>!G.collected[i]);
+  let char;
+  if(need.length>0 && Math.random()<0.6){
+    char=need[Math.floor(Math.random()*need.length)];
+  } else {
+    const pool=HIRA.split('').filter(c=>!G.target.includes(c));
+    char=pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  const x=G.fieldW*(0.08+Math.random()*0.84); // 8〜92%
+  const y=-60;
+
+  const el=document.createElement('div');
+  el.className='fc';
+  const col=CHAR_COLORS[Math.floor(Math.random()*CHAR_COLORS.length)];
+  el.style.background=col;
+  el.style.color=CHAR_DARK.includes(col)?'#333':'#fff';
+  el.textContent=char;
+  el.style.left=x+'px';
+  el.style.top =y+'px';
+  G.fieldEl.appendChild(el);
+
+  G.fallers.push({el,char,x,y});
+}
+
+// ============================================================
+// メインループ（JS で y 座標を毎フレーム更新）
+// ============================================================
+function loop(ts){
+  if(!document.getElementById('game-screen').classList.contains('active')) return;
+  const dt=Math.min((ts-G.lastTs)/1000, 0.1); // 秒。最大0.1秒でクランプ
+  G.lastTs=ts;
+
+  resizeField(); // リサイズ追従
+  const speed=DINFO[G.diff].pxPerSec;
+
+  const catcherR=G.catcherEl.getBoundingClientRect();
+  const fieldR =G.fieldEl.getBoundingClientRect();
+  // キャッチャー中心（field基準）
+  const cx=catcherR.left+catcherR.width/2 - fieldR.left;
+  const cy=catcherR.top  - fieldR.top;
+
+  const toRemove=[];
+  G.fallers.forEach(f=>{
+    f.y += speed*dt;
+    f.el.style.top=f.y+'px';
+
+    // 画面外に出たら除去
+    if(f.y > G.fieldH+60){ toRemove.push(f); return; }
+
+    // キャッチ判定：文字中心とキャッチャー中心の距離
+    const fx=f.x;              // 文字中心X
+    const fy=f.y+25;           // 文字中心Y（50pxの中央）
+    const dx=Math.abs(fx-cx);
+    const dy=fy-cy;            // 正=文字がキャッチャーより下
+
+    // 横48px以内、縦は文字がキャッチャー上端〜+60pxの範囲
+    if(dx<48 && dy>-10 && dy<65){
+      doCatch(f);
+      toRemove.push(f);
+    }
+  });
+  toRemove.forEach(f=>{ f.el.remove(); G.fallers=G.fallers.filter(x=>x!==f); });
+
+  G.rafId=requestAnimationFrame(loop);
+}
+
+function doCatch(f){
+  if(G.answered) return;
+  const ex=f.x;
+  const ey=f.y;
+
+  // ターゲット内で、まだ埋まっていない該当文字のスロット位置を探す
+  let slotIdx=-1;
+  for(let i=0;i<G.target.length;i++){
+    if(G.target[i]===f.char && !G.collected[i]){
+      slotIdx=i;
+      break;
+    }
+  }
+
+  if(slotIdx!==-1){
+    G.collected[slotIdx]=f.char; // 正しい位置にセット
+    renderSlots();
+    spawnFx('⭕',ex,ey);
+  } else if(G.target.includes(f.char)){
+    // 文字自体は答えに含まれるが、もう全部埋まっている（重複文字を拾いすぎ）
+    spawnFx('💨',ex,ey);
+  } else {
+    spawnFx('❌',ex,ey);
+  }
+}
+
+function spawnFx(txt,x,y){
+  const ef=document.createElement('div');
+  ef.className='catch-fx';
+  ef.textContent=txt;
+  ef.style.left=x+'px';
+  ef.style.top =y+'px';
+  G.fieldEl.appendChild(ef);
+  ef.addEventListener('animationend',()=>ef.remove());
+}
+
+// ============================================================
+// 答える
+// ============================================================
+window.checkAnswer=function(){
+  if(G.answered) return;
+  G.answered=true;
+  stopFalling();
+
+  const q=G.questions[G.qIdx];
+  const ok=(G.collected.join('')===q.answer);
+  if(ok) G.score++;
+
+  showFB(ok,q);
+  setTimeout(()=>{
+    hideFB();
+    G.qIdx++;
+    if(G.qIdx>=G.questions.length){
+      G.totalTime=(Date.now()-G.startTime)/1000;
+      showResult();
+    } else {
+      loadQ();
+    }
+  }, ok?1300:1900);
+};
+
+function showFB(ok,q){
+  document.getElementById('fb-icon').textContent=ok?'⭕':'❌';
+  document.getElementById('fb-text').textContent=ok?'せいかい！🎉':'ざんねん…';
+  document.getElementById('fb-ans').textContent =`こたえ：${q.label}（${q.answer}）`;
+  document.getElementById('fb-bg').classList.add('show');
+  document.getElementById('fb-box').classList.add('show');
+}
+function hideFB(){
+  document.getElementById('fb-bg').classList.remove('show');
+  document.getElementById('fb-box').classList.remove('show');
+}
+
+// ============================================================
+// ゲーム停止
+// ============================================================
+function stopGame(){
+  stopFalling();
+  if(G.rafId){ cancelAnimationFrame(G.rafId); G.rafId=null; }
+  G.fallers.forEach(f=>f.el.remove());
+  G.fallers=[];
+}
+
+// ============================================================
+// 結果（通信簿）
+// ============================================================
+const GRADES=[
+  {min:10,grade:'◎',cmt:'かんぺき！ すごすぎる！🌟',stamp:'🏆'},
+  {min: 8,grade:'○',cmt:'よくできました！すばらしい！🎉',stamp:'⭐'},
+  {min: 6,grade:'△',cmt:'もうすこし！がんばって！💪',stamp:'🌸'},
+  {min: 0,grade:'×',cmt:'れんしゅうして またちょうせん！😊',stamp:'🌈'},
+];
+function showResult(){
+  stopGame();
+  const info=SINFO[G.subj];
+  const diff=DINFO[G.diff];
+  const pct=G.score/G.questions.length;
+  const gobj=GRADES.find(g=>G.score>=g.min);
+  const avg=G.totalTime/G.questions.length;
+
+  document.getElementById('r-title').textContent=info.icon+' '+info.name+' つうしんぼ';
+  document.getElementById('r-stamp').textContent=gobj.stamp;
+  document.getElementById('r-subj').textContent=info.name;
+  document.getElementById('r-diff').textContent=diff.name;
+  document.getElementById('r-grade').textContent=gobj.grade;
+  document.getElementById('r-cmt').textContent=gobj.cmt;
+
+  const acc=Math.round(pct*5);
+  const spd=avg<10?5:avg<15?4:avg<22?3:avg<30?2:1;
+  mkStars('s-acc',acc);
+  mkStars('s-spd',Math.max(1,spd));
+  mkStars('s-eff',5);
+  mkStars('s-kno',acc);
+
+  showScreen('result-screen');
+}
+function mkStars(id,n){
+  const el=document.getElementById(id);
+  el.innerHTML='';
+  for(let i=0;i<5;i++){
+    const s=document.createElement('span');
+    s.className='star';
+    s.textContent=i<n?'⭐':'☆';
+    el.appendChild(s);
+  }
+}
+
+// ============================================================
+// 入力（スマホ: document全体でタッチ追跡 / PC: mousemove / キーボード）
+// ============================================================
+function initInput(){
+  // スマホ：document全体でタッチを追跡（フィールド外に出ても追従）
+  document.addEventListener('touchstart', onTouch, {passive:true});
+  document.addEventListener('touchmove',  onTouch, {passive:true});
+  // マウス
+  document.getElementById('field').addEventListener('mousemove', onMouse);
+  // キーボード
+  document.addEventListener('keydown', onKey);
+}
+
+function onTouch(e){
+  if(!document.getElementById('game-screen').classList.contains('active')) return;
+  if(!e.touches[0]) return;
+  const fR=G.fieldEl.getBoundingClientRect();
+  const tx=e.touches[0].clientX - fR.left;
+  moveCatcher(tx/G.fieldW*100);
+}
+function onMouse(e){
+  if(!document.getElementById('game-screen').classList.contains('active')) return;
+  const fR=G.fieldEl.getBoundingClientRect();
+  moveCatcher((e.clientX-fR.left)/G.fieldW*100);
+}
+function onKey(e){
+  if(!document.getElementById('game-screen').classList.contains('active')) return;
+  if(e.key==='ArrowLeft')  moveCatcher(G.catcherX-6);
+  if(e.key==='ArrowRight') moveCatcher(G.catcherX+6);
+  if(e.key==='Enter'||e.key===' ') checkAnswer();
+}
+function moveCatcher(pct){
+  G.catcherX=Math.max(4,Math.min(96,pct));
+  if(G.catcherEl) G.catcherEl.style.left=G.catcherX+'%';
+}
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+window.addEventListener('resize',resizeField);
+</script>
+</body>
+</html>
