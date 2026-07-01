@@ -728,5 +728,70 @@ function shuffle(arr){
 
 window.addEventListener('resize',resizeField);
 </script>
+
+<script>
+/* ==========================================================
+   🎁 誕プレUIモジュール — えもじことばゲーム専用
+   ----------------------------------------------------------
+   BIRTHDAY_MONTHS に「月（数字）」だけを追加する（名前不要）
+   対象月の間だけタイトル画面が特別な見た目になる
+   月が終わると自動で通常UIに戻る（GitHub更新不要）
+   ========================================================== */
+(function(){
+  var BIRTHDAY_MONTHS = [2, 5, 10 /*, 他の月をここに追加: 例 8, 11 */];
+
+  var thisMonth = new Date().getMonth() + 1;
+  if (BIRTHDAY_MONTHS.indexOf(thisMonth) === -1) return;
+
+  var css =
+    '#bday-banner{' +
+      'width:92%;max-width:370px;margin:0 auto 4px;' +
+      'background:linear-gradient(135deg,#FF6B6B,#FF8E53);' +
+      'color:#fff;font-weight:900;font-size:13px;letter-spacing:.06em;' +
+      'text-align:center;padding:9px 12px;border-radius:50px;' +
+      'box-shadow:0 4px 16px rgba(255,107,107,.4);' +
+      'animation:bdayPulse 2.2s ease-in-out infinite;}' +
+    '@keyframes bdayPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.03);}}' +
+    '.bday-p{position:fixed;top:-30px;pointer-events:none;z-index:999;' +
+      'font-size:20px;opacity:.9;animation:bdayDrop linear forwards;}' +
+    '@keyframes bdayDrop{to{transform:translateY(110vh) rotate(360deg);opacity:0;}}' +
+    '@media(prefers-reduced-motion:reduce){#bday-banner{animation:none;}.bday-p{display:none;}}';
+
+  var s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+
+  function addBanner(){
+    var title = document.getElementById('title-screen');
+    if (!title || document.getElementById('bday-banner')) return;
+    var b = document.createElement('div');
+    b.id = 'bday-banner';
+    b.textContent = '\uD83C\uDF81 今月はちょっと特別な月みたいです ✨';
+    var first = title.querySelector('div');
+    if (first && first.nextSibling) title.insertBefore(b, first.nextSibling);
+    else title.insertBefore(b, title.firstChild);
+  }
+
+  var icons = ['\uD83C\uDF81','⭐','✨','\uD83C\uDF1F','\uD83C\uDF80'];
+  function isTitleActive(){
+    var t = document.getElementById('title-screen');
+    return t && t.classList.contains('active');
+  }
+  setInterval(function(){
+    if (!isTitleActive()) return;
+    var p = document.createElement('span');
+    p.className = 'bday-p';
+    p.textContent = icons[Math.floor(Math.random()*icons.length)];
+    p.style.left = (5 + Math.random()*90) + '%';
+    p.style.animationDuration = (3.2 + Math.random()*2.2) + 's';
+    document.body.appendChild(p);
+    setTimeout(function(){ p.remove(); }, 5500);
+  }, 850);
+
+  function init(){ addBanner(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
 </body>
 </html>
